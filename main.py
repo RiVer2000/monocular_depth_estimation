@@ -1,21 +1,15 @@
 import cv2
 import torch
-# import torch.nn as nn
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from torchvision import transforms
-# from skimage import img_as_ubyte
-# import imutils
-
-
 import torch
-# import torch.nn as nn
 import cv2
 import segmentation_models_pytorch as smp
 
+# TO-DO: 
+# Swap the Unet decoder with a custom decoder both in train.py and main.py
+
 def load_model():
     model = smp.Unet(encoder_name="resnet34", encoder_weights=None, in_channels=3, classes=1)
-    model.load_state_dict(torch.load("/home/river2000/monocular_depth_estimation/model1.pth"))
+    model.load_state_dict(torch.load("model1.pth"))
     model.eval()
     return model
 

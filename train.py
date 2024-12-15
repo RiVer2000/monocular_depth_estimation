@@ -1,36 +1,18 @@
 import torch
-# import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
-# from torch.optim import Adam
-# from torch.optim.lr_scheduler import LambdaLR
 import os
 import csv
 import random
 import cv2
 import numpy as np
-# from skimage.transform import resize
-# import PIL
-# from torchvision.models import resnet34
-# from torchvision.models.segmentation import fcn_resnet50
 import segmentation_models_pytorch as smp
 import piq
-# import albumentations as A  # Alternative for augmentations like `imutils`
-
-import torch
-# import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as transforms
-import segmentation_models_pytorch as smp
-import numpy as np
-import cv2
-import random
-import csv
-import os
-# import matplotlib.pyplot as plt
-# from PIL import Image
+
+# To-Do
+# Swap the Unet decoder with a custom decoder both in train.py and main.py
 
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -43,11 +25,11 @@ HEIGHT = 128
 WIDTH = 128
 INIT_LR = 0.0001
 EPOCHS = 1
-TRAIN_PATH = "/home/river2000/monocular_depth_estimation/nyu_data/data/nyu2_train.csv"
-TEST_PATH = "/home/river2000/monocular_depth_estimation/nyu_data/data/nyu2_test.csv"
+TRAIN_PATH = "nyu_data/data/nyu2_train.csv"
+TEST_PATH = "nyu_data/data/nyu2_test.csv"
 
 # Load dataset
-BASE_PATH = "/home/river2000/monocular_depth_estimation/nyu_data/"
+BASE_PATH = "nyu_data"
 
 def read_csv(csv_file_path):
     with open(csv_file_path, 'r') as f:
