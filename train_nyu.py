@@ -10,6 +10,7 @@ import numpy as np
 import segmentation_models_pytorch as smp
 import piq
 import torch.optim as optim
+from tqdm import tqdm
 
 # To-Do
 # Swap the Unet decoder with a custom decoder both in train.py and main.py
@@ -24,7 +25,7 @@ print('Found GPU at:', torch.cuda.get_device_name(0))
 HEIGHT = 128
 WIDTH = 128
 INIT_LR = 0.0001
-EPOCHS = 1
+EPOCHS = 20
 TRAIN_PATH = "nyu_data/data/nyu2_train.csv"
 TEST_PATH = "nyu_data/data/nyu2_test.csv"
 
@@ -144,6 +145,10 @@ test_loader = DataLoader(test_set, batch_size=16, shuffle=False)
 model = smp.Unet(encoder_name="resnet34", encoder_weights="imagenet", in_channels=3, classes=1)
 model = model.to(device)
 
+# # Get the summary of the model using torchsummary
+# from torchsummary import summary
+# summary(model, (3, HEIGHT, WIDTH))
+
 # Loss and optimizer
 import torch.nn.functional as F
 import piq
@@ -175,10 +180,50 @@ def depth_loss(y_true, y_pred):
 
     return (w1 * l_ssim) + (w2 * l_edges) + (w3 * l_depth)
 
+# Calculate the F1 score
+# import torch
+
+def f1_score(y_true, y_pred, threshold=0.1):
+    # Convert numpy arrays to tensors
+    if isinstance(y_true, np.ndarray):
+        y_true = torch.tensor(y_true)
+    if isinstance(y_pred, np.ndarray):
+        y_pred = torch.tensor(y_pred)
+
+    # Calculate absolute error
+    abs_error = torch.abs(y_pred - y_true)
+
+    # Binarize predictions (1 if within threshold, 0 otherwise)
+    correct_predictions = (abs_error <= threshold).float()
+
+    # Calculate precision and recall
+    precision = correct_predictions.sum() / y_pred.numel()
+    recall = correct_predictions.sum() / y_true.numel()
+
+    # Avoid division by zero
+    if precision + recall == 0:
+        return 0.0
+    
+    # Calculate F1 score
+    f1 = 2 * (precision * recall) / (precision + recall)
+    return f1
+
+
+# Calculate the RMSE
+def rmse(y_true, y_pred):
+    return np.sqrt(np.mean((y_true - y_pred) ** 2))
+
+# Calculate the MSE
+def mse(y_true, y_pred):
+    return np.mean((y_true - y_pred) ** 2)
+
+
+
 optimizer = optim.Adam(model.parameters(), lr=INIT_LR, amsgrad=True)
 
 # Training
-for epoch in range(EPOCHS):
+# for epoch in range(EPOCHS):
+for epoch in tqdm(range(EPOCHS), desc="Training"):
     model.train()
     running_loss = 0.0
     for images, depth_maps in training_loader:
@@ -189,10 +234,14 @@ for epoch in range(EPOCHS):
         loss = depth_loss(depth_maps, outputs)
         loss.backward()
         optimizer.step()
-
+        f1 = f1_score(depth_maps.cpu().detach().numpy(), outputs.cpu().detach().numpy())
+        rmse_score = rmse(depth_maps.cpu().detach().numpy(), outputs.cpu().detach().numpy())
+        mse_score = mse(depth_maps.cpu().detach().numpy(), outputs.cpu().detach().numpy())
         running_loss += loss.item()
 
-    print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {running_loss/len(training_loader)}")
+    print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {running_loss/len(training_loader)}, F1 Score: {f1}, RMSE: {rmse_score}, MSE: {mse_score}")
+
+
 
 # Evaluation
 model.eval()
