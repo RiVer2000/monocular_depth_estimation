@@ -4,8 +4,6 @@ import torch
 import cv2
 import segmentation_models_pytorch as smp
 
-# TO-DO: 
-# Swap the Unet decoder with a custom decoder both in train.py and main.py
 
 def load_model():
     model = smp.Unet(encoder_name="resnet34", encoder_weights=None, in_channels=3, classes=1)

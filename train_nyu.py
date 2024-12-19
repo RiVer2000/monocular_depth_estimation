@@ -12,8 +12,6 @@ import piq
 import torch.optim as optim
 from tqdm import tqdm
 
-# To-Do
-# Swap the Unet decoder with a custom decoder both in train.py and main.py
 
 # Check for GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
