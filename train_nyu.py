@@ -11,6 +11,7 @@ import segmentation_models_pytorch as smp
 import piq
 import torch.optim as optim
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 # Check for GPU
@@ -23,7 +24,7 @@ print('Found GPU at:', torch.cuda.get_device_name(0))
 HEIGHT = 128
 WIDTH = 128
 INIT_LR = 0.0001
-EPOCHS = 20
+EPOCHS = 10
 TRAIN_PATH = "nyu_data/data/nyu2_train.csv"
 TEST_PATH = "nyu_data/data/nyu2_test.csv"
 
@@ -178,34 +179,6 @@ def depth_loss(y_true, y_pred):
 
     return (w1 * l_ssim) + (w2 * l_edges) + (w3 * l_depth)
 
-# Calculate the F1 score
-# import torch
-
-def f1_score(y_true, y_pred, threshold=0.1):
-    # Convert numpy arrays to tensors
-    if isinstance(y_true, np.ndarray):
-        y_true = torch.tensor(y_true)
-    if isinstance(y_pred, np.ndarray):
-        y_pred = torch.tensor(y_pred)
-
-    # Calculate absolute error
-    abs_error = torch.abs(y_pred - y_true)
-
-    # Binarize predictions (1 if within threshold, 0 otherwise)
-    correct_predictions = (abs_error <= threshold).float()
-
-    # Calculate precision and recall
-    precision = correct_predictions.sum() / y_pred.numel()
-    recall = correct_predictions.sum() / y_true.numel()
-
-    # Avoid division by zero
-    if precision + recall == 0:
-        return 0.0
-    
-    # Calculate F1 score
-    f1 = 2 * (precision * recall) / (precision + recall)
-    return f1
-
 
 # Calculate the RMSE
 def rmse(y_true, y_pred):
@@ -218,6 +191,9 @@ def mse(y_true, y_pred):
 
 
 optimizer = optim.Adam(model.parameters(), lr=INIT_LR, amsgrad=True)
+depth_loss_list = []
+rmse_score_list = []
+mse_score_list = []
 
 # Training
 # for epoch in range(EPOCHS):
@@ -232,12 +208,15 @@ for epoch in tqdm(range(EPOCHS), desc="Training"):
         loss = depth_loss(depth_maps, outputs)
         loss.backward()
         optimizer.step()
-        f1 = f1_score(depth_maps.cpu().detach().numpy(), outputs.cpu().detach().numpy())
         rmse_score = rmse(depth_maps.cpu().detach().numpy(), outputs.cpu().detach().numpy())
         mse_score = mse(depth_maps.cpu().detach().numpy(), outputs.cpu().detach().numpy())
         running_loss += loss.item()
+        # Append the metrics to the lists
+        depth_loss_list.append(loss.item())
+        rmse_score_list.append(rmse_score)
+        mse_score_list.append(mse_score)
 
-    print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {running_loss/len(training_loader)}, F1 Score: {f1}, RMSE: {rmse_score}, MSE: {mse_score}")
+    print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {running_loss/len(training_loader)}, RMSE: {rmse_score}, MSE: {mse_score}")
 
 
 
@@ -253,5 +232,32 @@ with torch.no_grad():
 
     print(f"Test Loss: {total_loss/len(test_loader)}")
 
+
+# Plot the metrics in separate subplots
+plt.figure(figsize=(10, 5))
+plt.plot(depth_loss_list, label='Depth Loss')
+plt.title('Depth Loss')
+plt.xlabel('Iterations')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.plot(rmse_score_list, label='RMSE')
+plt.title('RMSE')
+plt.xlabel('Iterations')
+plt.ylabel('RMSE')
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.plot(mse_score_list, label='MSE')
+plt.title('MSE')
+plt.xlabel('Iterations')
+plt.ylabel('MSE')
+plt.legend()
+plt.show()
+
+
 # Save model
-torch.save(model.state_dict(), "./model1.pth")
+# torch.save(model.state_dict(), "./model1.pth")
